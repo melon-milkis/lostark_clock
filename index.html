@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>로아 시간 동기화 시계</title>
+    <title>로아 시간 동기화 시계 (정밀 보정)</title>
     <style>
         body {
             display: flex;
@@ -194,6 +194,8 @@
             }
             logMessage("서버 시간 동기화를 시작합니다...", 'info');
             
+            const requestStartTime = Date.now();
+            
             const xhr = new XMLHttpRequest();
             const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
             const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
@@ -204,11 +206,15 @@
             
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4 && xhr.status === 200) {
+                    const responseEndTime = Date.now();
+                    const roundTripTime = responseEndTime - requestStartTime;
+                    
                     const serverDateHeader = xhr.getResponseHeader('Date');
                     if (serverDateHeader) {
                         const serverTime = new Date(serverDateHeader).getTime();
-                        timeOffset = serverTime - Date.now();
-                        logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms`, 'success');
+                        const correctedLocalTime = requestStartTime + (roundTripTime / 2);
+                        timeOffset = serverTime - correctedLocalTime;
+                        logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms (왕복: ${roundTripTime}ms)`, 'success');
                     }
                 } else if (xhr.readyState === 4) {
                     if (xhr.status === 403) {
