@@ -169,7 +169,7 @@
         }
 
         function updateClock() {
-            const now = new Date(new Date().getTime() + timeOffset);
+            const now = new Date(Date.now() + timeOffset);
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
@@ -194,9 +194,6 @@
             }
             logMessage("서버 시간 동기화를 시작합니다...", 'info');
             
-            // ▼▼▼ 오차 보정 로직 추가 ▼▼▼
-            const requestStartTime = new Date().getTime(); // 1. 요청 시작 시간 기록
-            
             const xhr = new XMLHttpRequest();
             const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
             const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
@@ -207,16 +204,11 @@
             
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4 && xhr.status === 200) {
-                    const responseEndTime = new Date().getTime(); // 2. 응답 도착 시간 기록
-                    const roundTripTime = responseEndTime - requestStartTime; // 3. 왕복 시간 계산
-                    
                     const serverDateHeader = xhr.getResponseHeader('Date');
                     if (serverDateHeader) {
                         const serverTime = new Date(serverDateHeader).getTime();
-                        // 4. 왕복 시간의 절반을 더해 오차 보정
-                        const correctedLocalTime = requestStartTime + (roundTripTime / 2); 
-                        timeOffset = serverTime - correctedLocalTime;
-                        logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms (왕복: ${roundTripTime}ms)`, 'success');
+                        timeOffset = serverTime - Date.now();
+                        logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms`, 'success');
                     }
                 } else if (xhr.readyState === 4) {
                     if (xhr.status === 403) {
@@ -260,7 +252,6 @@
 
         applyColors();
         setInterval(updateClock, 200);
-    </script>
     </script>
 </body>
 </html>
