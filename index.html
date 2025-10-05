@@ -193,6 +193,10 @@
                 return;
             }
             logMessage("서버 시간 동기화를 시작합니다...", 'info');
+            
+            // ▼▼▼ 오차 보정 로직 추가 ▼▼▼
+            const requestStartTime = new Date().getTime(); // 1. 요청 시작 시간 기록
+            
             const xhr = new XMLHttpRequest();
             const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
             const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
@@ -203,15 +207,19 @@
             
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4 && xhr.status === 200) {
+                    const responseEndTime = new Date().getTime(); // 2. 응답 도착 시간 기록
+                    const roundTripTime = responseEndTime - requestStartTime; // 3. 왕복 시간 계산
+                    
                     const serverDateHeader = xhr.getResponseHeader('Date');
                     if (serverDateHeader) {
                         const serverTime = new Date(serverDateHeader).getTime();
-                        const localTime = new Date().getTime();
-                        timeOffset = serverTime - localTime;
-                        logMessage(`동기화 성공! 서버 시간과의 차이: ${timeOffset}ms`, 'success');
+                        // 4. 왕복 시간의 절반을 더해 오차 보정
+                        const correctedLocalTime = requestStartTime + (roundTripTime / 2); 
+                        timeOffset = serverTime - correctedLocalTime;
+                        logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms (왕복: ${roundTripTime}ms)`, 'success');
                     }
                 } else if (xhr.readyState === 4) {
-                     if (xhr.status === 403) {
+                    if (xhr.status === 403) {
                         logMessage("프록시 접근 거부(403). https://cors-anywhere.herokuapp.com/corsdemo 에 방문하여 버튼을 클릭해주세요.", 'error');
                     } else if (xhr.status === 429) {
                         logMessage("프록시 사용량 초과(429). 1분 후에 다시 시도됩니다.", 'error');
@@ -252,6 +260,7 @@
 
         applyColors();
         setInterval(updateClock, 200);
+    </script>
     </script>
 </body>
 </html>
