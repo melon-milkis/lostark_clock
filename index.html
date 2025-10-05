@@ -112,11 +112,12 @@
             <circle class="clock-bg" cx="50" cy="50" r="40"></circle>
             <circle class="seconds-arc" cx="50" cy="50" r="40"></circle>
         </svg>
-        <div id="digital-time">--:--:--</div>
+        <div id="digital-time">00:00:00</div>
         <div id="date-display">----.--.--. -요일</div>
     </div>
     
     <div id="status-log"></div>
+
 
     <script>
         const colors = {
@@ -128,13 +129,8 @@
             analogBgColor: '#eeeeee'
         };
 
-        // SYNC_INTERVAL은 하루 6번(4시간마다) 동기화를 의미합니다.
+
         const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6;
-        // 프록시 서버 URL
-        const PROXY_URL = 'https://melonmilkis.sshyun1133.workers.dev/';
-        // Lost Ark API의 실제 경로 (프록시 서버가 이 경로로 요청을 전달할 것으로 예상)
-        const LA_API_PATH = 'characters/melonmilkis/siblings'; 
-        
         let apiKey = "";
         let timeOffset = 0;
         let syncIntervalId = null;
@@ -155,6 +151,7 @@
         const circumference = 2 * Math.PI * radius;
         secondsArcEl.style.strokeDasharray = circumference;
 
+
         function logMessage(message, type = 'info') {
             if (statusLog.style.display === 'none') {
                 statusLog.style.display = 'block';
@@ -163,11 +160,8 @@
             logEntry.className = `log-entry log-${type}`;
             logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
             statusLog.prepend(logEntry);
-            // 최대 로그 개수 제한
-            while (statusLog.children.length > 10) {
-                statusLog.removeChild(statusLog.lastChild);
-            }
         }
+
 
         function applyColors() {
             clockContainerEl.style.backgroundColor = colors.backgroundColor;
@@ -178,8 +172,9 @@
             secondsArcEl.style.stroke = colors.secondsColor;
         }
 
+
         function updateClock() {
-            const now = new Date(Date.now() + timeOffset);
+            const now = new Date(new Date().getTime() + timeOffset);
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0');
@@ -187,6 +182,7 @@
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const date = String(now.getDate()).padStart(2, '0');
             const day = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][now.getDay()];
+
 
             digitalTimeEl.innerHTML = `${hours}:${minutes}:<span class="seconds" style="color: ${colors.secondsColor};">${seconds}</span>`;
             dateEl.textContent = `${year}.${month}.${date}. ${day}`;
@@ -197,49 +193,37 @@
             secondsArcEl.style.strokeDashoffset = offset;
         }
 
+
         function syncTime() {
             if (!apiKey) {
                 logMessage("API 키가 입력되지 않았습니다.", 'error');
                 return;
             }
-            logMessage("서버 시간 동기화를 시작합니다... (프록시 사용)", 'info');
-            
-            const requestStartTime = Date.now();
-            
+            logMessage("서버 시간 동기화를 시작합니다...", 'info');
             const xhr = new XMLHttpRequest();
-            // 프록시 서버 URL과 API 경로를 합칩니다.
-            const url = PROXY_URL + LA_API_PATH;
+            // 프록시 주소로 수정됨
+            const url = 'https://melonmilkis.sshyun1133.workers.dev/characters/melonmilkis/siblings';
             
-            // Lost Ark API의 응답 본문은 필요 없으므로 HEAD 요청을 유지합니다.
             xhr.open("HEAD", url, true);
-            // API 키를 Authorization 헤더에 담아 프록시 서버로 보냅니다.
+            xhr.setRequestHeader("accept", "application/json");
             xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
             
             xhr.onreadystatechange = function () {
-                if (xhr.readyState === 4) {
-                    const responseEndTime = Date.now();
-                    const roundTripTime = responseEndTime - requestStartTime;
-
-                    if (xhr.status === 200) {
-                        const serverDateHeader = xhr.getResponseHeader('Date');
-                        if (serverDateHeader) {
-                            // 서버 시간을 기준으로 타임스탬프 계산
-                            const serverTime = new Date(serverDateHeader).getTime();
-                            // 왕복 시간의 절반을 빼서 서버에 요청이 도착했을 예상 시각을 추정합니다.
-                            const correctedLocalTime = requestStartTime + (roundTripTime / 2);
-                            // 서버 시간과 보정된 로컬 시간의 차이를 오차 보정값으로 사용합니다.
-                            timeOffset = serverTime - correctedLocalTime;
-                            logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms (왕복: ${roundTripTime}ms)`, 'success');
-                        } else {
-                            logMessage("동기화 실패: 서버에서 'Date' 헤더를 받지 못했습니다. 프록시 설정을 확인하세요.", 'error');
-                        }
-                    } else {
-                        logMessage(`동기화 실패 (상태: ${xhr.status}). API 키 유효성 및 프록시 서버 작동 상태를 확인해주세요.`, 'error');
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    const serverDateHeader = xhr.getResponseHeader('Date');
+                    if (serverDateHeader) {
+                        const serverTime = new Date(serverDateHeader).getTime();
+                        const localTime = new Date().getTime();
+                        timeOffset = serverTime - localTime;
+                        logMessage(`동기화 성공! 서버 시간과의 차이: ${timeOffset}ms`, 'success');
                     }
+                } else if (xhr.readyState === 4) {
+                    logMessage("동기화 실패. API 키가 유효한지 또는 CORS 정책을 확인해주세요.", 'error');
                 }
             };
             xhr.send();
         }
+
 
         colorPicker.addEventListener('input', (event) => {
             colors.secondsColor = event.target.value;
@@ -254,8 +238,8 @@
             }
             
             apiKey = inputKey;
-            // 로컬 스토리지에 저장하는 것도 고려해볼 수 있습니다.
             logMessage("API 키가 저장되었습니다.", "info");
+
 
             if (syncIntervalId) {
                 clearInterval(syncIntervalId);
@@ -267,11 +251,12 @@
             apiControls.remove();
         });
 
+
         manualSyncButton.addEventListener('click', syncTime);
 
+
         applyColors();
-        // 시계 업데이트는 200ms 마다 실행하여 부드럽게 초침이 움직이도록 합니다.
-        setInterval(updateClock, 200); 
+        setInterval(updateClock, 200);
     </script>
 </body>
 </html>
