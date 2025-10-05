@@ -100,7 +100,7 @@
         <button id="api-key-submit">입력</button>
     </div>
     <div id="persistent-controls" class="controls">
-         <label for="color-picker">초 색상:</label>
+         <label for="color-picker">색상:</label>
         <input type="color" id="color-picker" value="#28a745">
         <button id="manual-sync-button">수동 동기화</button>
     </div>
@@ -147,16 +147,6 @@
         const circumference = 2 * Math.PI * radius;
         secondsArcEl.style.strokeDasharray = circumference;
 
-        function logMessage(message, type = 'info') {
-            if (statusLog.style.display === 'none') {
-                statusLog.style.display = 'block';
-            }
-            const logEntry = document.createElement('p');
-            logEntry.className = `log-entry log-${type}`;
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            statusLog.prepend(logEntry);
-        }
-
         function applyColors() {
             clockContainerEl.style.backgroundColor = colors.backgroundColor;
             clockContainerEl.style.borderColor = colors.borderColor;
@@ -187,19 +177,19 @@
 
         async function syncTime() {
             if (!apiKey) {
-                logMessage("API 키가 입력되지 않았습니다.", 'error');
+                console.log("API 키가 입력되지 않았습니다.");
                 return;
             }
-            logMessage("정밀 동기화를 시작합니다 (3회 측정)...", 'info');
+            console.log("정밀 동기화를 시작합니다 (3회 측정)...");
 
             const offsets = [];
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 5; i++) {
                 try {
                     const offset = await fetchTimeOffset();
                     offsets.push(offset);
-                    await new Promise(resolve => setTimeout(resolve, 300)); // 측정 간 300ms 딜레이
+                    await new Promise(resolve => setTimeout(resolve, 200)); // 측정 간 300ms 딜레이
                 } catch (error) {
-                    logMessage(`측정 실패: ${error.message}`, 'error');
+                    console.log(`측정 실패: ${error.message}`);
                     return; // 한 번이라도 실패하면 중단
                 }
             }
@@ -207,7 +197,7 @@
             if (offsets.length > 0) {
                 const avgOffset = offsets.reduce((a, b) => a + b, 0) / offsets.length;
                 timeOffset = Math.round(avgOffset);
-                logMessage(`동기화 성공! 최종 보정값: ${timeOffset}ms (측정값: ${offsets.join(', ')})`, 'success');
+                console.log(`동기화 성공! 최종 보정값: ${timeOffset}ms (측정값: ${offsets.join(', ')})`);
             }
         }
 
@@ -259,7 +249,7 @@
             }
             
             apiKey = inputKey;
-            logMessage("API 키가 저장되었습니다.", "info");
+            console.log("API 키가 저장되었습니다.");
 
             if (syncIntervalId) {
                 clearInterval(syncIntervalId);
