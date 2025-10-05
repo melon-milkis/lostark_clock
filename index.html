@@ -197,11 +197,9 @@
             const requestStartTime = Date.now();
             
             const xhr = new XMLHttpRequest();
-            const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
-            // ▼▼▼ 이 부분을 전달해주신 개인 프록시 주소로 변경 ▼▼▼
-            const proxyUrl = `https://2c80b0c8-cecf-4add-a8bb-cc4dfd392a93-00-103joh2cybhyh.worf.replit.dev/api/proxy/${originalUrl}`;
+            const url = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
             
-            xhr.open("HEAD", proxyUrl, true);
+            xhr.open("HEAD", url, true);
             xhr.setRequestHeader("accept", "application/json");
             xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
             
@@ -218,7 +216,7 @@
                         logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms (왕복: ${roundTripTime}ms)`, 'success');
                     }
                 } else if (xhr.readyState === 4) {
-                    logMessage(`동기화 실패 (상태: ${xhr.status}). API 키 또는 프록시 서버 설정을 확인해주세요.`, 'error');
+                    logMessage(`동기화 실패 (상태: ${xhr.status}). API 키가 유효한지 또는 CORS 정책을 확인해주세요.`, 'error');
                 }
             };
             xhr.send();
