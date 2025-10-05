@@ -1,282 +1,299 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>로아 시간 동기화 시계</title>
-    <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            padding: 10px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        .controls label { font-size: 14px; }
-        .controls input[type="color"] {
-            width: 40px;
-            height: 30px;
-            border: none;
-            cursor: pointer;
-            background: none;
-            padding: 0;
-        }
-        .controls input[type="text"] {
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 5px 8px;
-        }
-        .controls button {
-            border: none;
-            background-color: #007bff;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .clock-container {
-            width: 300px;
-            height: 300px;
-            border-radius: 100%;
-            border: 1px solid;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
-        .analog-clock {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
-            transform: rotate(-90deg);
-        }
-        .analog-clock circle { fill: none; }
-        .clock-bg { stroke-width: 3.2; }
-        .seconds-arc {
-            stroke-width: 3.2;
-            stroke-linecap: round;
-            transition: stroke-dashoffset 0.2s linear, stroke 0.3s ease;
-        }
-        #digital-time {
-            font-size: 3rem; font-weight: 500;
-            z-index: 10;
-        }
-        #date-display {
-            font-size: 1rem; z-index: 10;
-            margin-top: 5px;
-        }
-        #status-log {
-            display: none;
-            width: 400px;
-            max-height: 100px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            background-color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 13px;
-        }
-        .log-entry { margin: 2px 0; }
-        .log-info { color: #555; }
-        .log-success { color: green; font-weight: bold; }
-        .log-error { color: red; font-weight: bold; }
-    </style>
+    <meta charset="UTF-8">
+    <title>로아 시간 동기화 시계</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            padding: 10px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .controls label { font-size: 14px; }
+        .controls input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: none;
+            cursor: pointer;
+            background: none;
+            padding: 0;
+        }
+        .controls input[type="text"] {
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            padding: 5px 8px;
+        }
+        .controls button {
+            border: none;
+            background-color: #007bff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .clock-container {
+            width: 300px;
+            height: 300px;
+            border-radius: 100%;
+            border: 1px solid;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        .analog-clock {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 100%;
+            transform: rotate(-90deg);
+        }
+        .analog-clock circle { fill: none; }
+        .clock-bg { stroke-width: 3.2; }
+        .seconds-arc {
+            stroke-width: 3.2;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 0.2s linear, stroke 0.3s ease;
+        }
+        #digital-time {
+            font-size: 3rem; font-weight: 500;
+            z-index: 10;
+        }
+        #date-display {
+            font-size: 1rem; z-index: 10;
+            margin-top: 5px;
+        }
+        #status-log {
+            display: none;
+            width: 400px;
+            max-height: 100px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 13px;
+        }
+        .log-entry { margin: 2px 0; }
+        .log-info { color: #555; }
+        .log-success { color: green; font-weight: bold; }
+        .log-error { color: red; font-weight: bold; }
+    </style>
 </head>
 <body>
-    <div id="api-controls" class="controls">
-        <label for="api-key-input">API Key:</label>
-        <input type="text" id="api-key-input" placeholder="API 키를 여기에 붙여넣으세요">
-        <button id="api-key-submit">입력</button>
-    </div>
-    <div id="persistent-controls" class="controls">
-         <label for="color-picker">초 색상:</label>
-        <input type="color" id="color-picker" value="#28a745">
-        <button id="manual-sync-button">수동 동기화</button>
-    </div>
+    <div id="api-controls" class="controls">
+        <label for="api-key-input">API Key:</label>
+        <input type="text" id="api-key-input" placeholder="API 키를 여기에 붙여넣으세요">
+        <button id="api-key-submit">입력</button>
+    </div>
+    <div id="persistent-controls" class="controls">
+         <label for="color-picker">초 색상:</label>
+        <input type="color" id="color-picker" value="#28a745">
+        <button id="manual-sync-button">수동 동기화</button>
+    </div>
 
-    <div class="clock-container">
-        <svg class="analog-clock" viewBox="0 0 100 100">
-            <circle class="clock-bg" cx="50" cy="50" r="40"></circle>
-            <circle class="seconds-arc" cx="50" cy="50" r="40"></circle>
-        </svg>
-        <div id="digital-time">--:--:--</div>
-        <div id="date-display">----.--.--. -요일</div>
-    </div>
-    
-    <div id="status-log"></div>
+    <div class="clock-container">
+        <svg class="analog-clock" viewBox="0 0 100 100">
+            <circle class="clock-bg" cx="50" cy="50" r="40"></circle>
+            <circle class="seconds-arc" cx="50" cy="50" r="40"></circle>
+        </svg>
+        <div id="digital-time">00:00:00</div>
+        <div id="date-display">2025.01.01. 수요일</div>
+    </div>
+    
+    <div id="status-log"></div>
 
-    <script>
-        const colors = {
-            backgroundColor: '#ffffff',
-            borderColor: '#e0e0e0',
-            mainTextColor: '#333333',
-            dateTextColor: '#888888',
-            secondsColor: document.getElementById('color-picker').value,
-            analogBgColor: '#eeeeee'
-        };
-
-        const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6;
-        let apiKey = "";
-        let timeOffset = 0;
-        let syncIntervalId = null;
+    <script>
+        // ⭐ 상수 정의
+        const CORS_PROXY_URL = 'https://cors-anywhere.herokuapp.com/';
+        // HEAD 요청에 적합한 유효한 API 엔드포인트
+        const LA_API_ENDPOINT = 'https://developer-lostark.game.onstove.com/news/notices'; 
         
-        const clockContainerEl = document.querySelector('.clock-container');
-        const digitalTimeEl = document.getElementById('digital-time');
-        const dateEl = document.getElementById('date-display');
-        const clockBgEl = document.querySelector('.clock-bg');
-        const secondsArcEl = document.querySelector('.seconds-arc');
-        const colorPicker = document.getElementById('color-picker');
-        const apiKeySubmitButton = document.getElementById('api-key-submit');
-        const manualSyncButton = document.getElementById('manual-sync-button');
-        const apiKeyInput = document.getElementById('api-key-input');
-        const apiControls = document.getElementById('api-controls');
-        const statusLog = document.getElementById('status-log');
-        
-        const radius = secondsArcEl.r.baseVal.value;
-        const circumference = 2 * Math.PI * radius;
-        secondsArcEl.style.strokeDasharray = circumference;
+        const colors = {
+            backgroundColor: '#ffffff',
+            borderColor: '#e0e0e0',
+            mainTextColor: '#333333',
+            dateTextColor: '#888888',
+            secondsColor: document.getElementById('color-picker').value,
+            analogBgColor: '#eeeeee'
+        };
 
-        function logMessage(message, type = 'info') {
-            if (statusLog.style.display === 'none') {
-                statusLog.style.display = 'block';
-            }
-            const logEntry = document.createElement('p');
-            logEntry.className = `log-entry log-${type}`;
-            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-            statusLog.prepend(logEntry);
-        }
+        const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6; // 4시간마다 동기화
+        let apiKey = "";
+        let timeOffset = 0;
+        let syncIntervalId = null;
+        
+        const clockContainerEl = document.querySelector('.clock-container');
+        const digitalTimeEl = document.getElementById('digital-time');
+        const dateEl = document.getElementById('date-display');
+        const clockBgEl = document.querySelector('.clock-bg');
+        const secondsArcEl = document.querySelector('.seconds-arc');
+        const colorPicker = document.getElementById('color-picker');
+        const apiKeySubmitButton = document.getElementById('api-key-submit');
+        const manualSyncButton = document.getElementById('manual-sync-button');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const apiControls = document.getElementById('api-controls');
+        const statusLog = document.getElementById('status-log');
+        
+        const radius = secondsArcEl.r.baseVal.value;
+        const circumference = 2 * Math.PI * radius;
+        secondsArcEl.style.strokeDasharray = circumference;
 
-        function applyColors() {
-            clockContainerEl.style.backgroundColor = colors.backgroundColor;
-            clockContainerEl.style.borderColor = colors.borderColor;
-            digitalTimeEl.style.color = colors.mainTextColor;
-            dateEl.style.color = colors.dateTextColor;
-            clockBgEl.style.stroke = colors.analogBgColor;
-            secondsArcEl.style.stroke = colors.secondsColor;
-        }
+        function logMessage(message, type = 'info') {
+            if (statusLog.style.display === 'none') {
+                statusLog.style.display = 'block';
+            }
+            const logEntry = document.createElement('p');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            statusLog.prepend(logEntry);
+        }
 
-        function updateClock() {
-            const now = new Date(Date.now() + timeOffset);
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            const year = now.getFullYear();
-            const month = String(now.getMonth() + 1).padStart(2, '0');
-            const date = String(now.getDate()).padStart(2, '0');
-            const day = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][now.getDay()];
+        function applyColors() {
+            clockContainerEl.style.backgroundColor = colors.backgroundColor;
+            clockContainerEl.style.borderColor = colors.borderColor;
+            digitalTimeEl.style.color = colors.mainTextColor;
+            dateEl.style.color = colors.dateTextColor;
+            clockBgEl.style.stroke = colors.analogBgColor;
+            secondsArcEl.style.stroke = colors.secondsColor;
+        }
 
-            digitalTimeEl.innerHTML = `${hours}:${minutes}:<span class="seconds" style="color: ${colors.secondsColor};">${seconds}</span>`;
-            dateEl.textContent = `${year}.${month}.${date}. ${day}`;
-            
-            const totalSeconds = now.getSeconds() + (now.getMilliseconds() / 1000);
-            const arcPercentage = totalSeconds / 60;
-            const offset = circumference * (1 - arcPercentage);
-            secondsArcEl.style.strokeDashoffset = offset;
-        }
+        function updateClock() {
+            const now = new Date(Date.now() + timeOffset);
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const day = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][now.getDay()];
 
-        async function syncTime() {
-            if (!apiKey) {
-                logMessage("API 키가 입력되지 않았습니다.", 'error');
-                return;
-            }
-            logMessage("정밀 동기화를 시작합니다 (3회 측정)...", 'info');
+            digitalTimeEl.innerHTML = `${hours}:${minutes}:<span class="seconds" style="color: ${colors.secondsColor};">${seconds}</span>`;
+            dateEl.textContent = `${year}.${month}.${date}. ${day}`;
+            
+            const totalSeconds = now.getSeconds() + (now.getMilliseconds() / 1000);
+            const arcPercentage = totalSeconds / 60;
+            const offset = circumference * (1 - arcPercentage);
+            secondsArcEl.style.strokeDashoffset = offset;
+        }
 
-            const offsets = [];
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const offset = await fetchTimeOffset();
-                    offsets.push(offset);
-                    await new Promise(resolve => setTimeout(resolve, 300)); // 측정 간 300ms 딜레이
-                } catch (error) {
-                    logMessage(`측정 실패: ${error.message}`, 'error');
-                    return; // 한 번이라도 실패하면 중단
-                }
-            }
-            
-            if (offsets.length > 0) {
-                const avgOffset = offsets.reduce((a, b) => a + b, 0) / offsets.length;
-                timeOffset = Math.round(avgOffset);
-                logMessage(`동기화 성공! 최종 보정값: ${timeOffset}ms (측정값: ${offsets.join(', ')})`, 'success');
-            }
-        }
+        // ⭐ 정밀 시간 측정을 위한 비동기 함수 (5회 최소값 선택)
+        async function syncTime() {
+            if (!apiKey) {
+                logMessage("API 키가 입력되지 않았습니다.", 'error');
+                return;
+            }
+            // 측정 횟수를 5회로 늘려 정확도 향상
+            logMessage("정밀 동기화를 시작합니다 (5회 측정)...", 'info');
 
-        function fetchTimeOffset() {
-            return new Promise((resolve, reject) => {
-                const requestStartTime = Date.now();
-                const xhr = new XMLHttpRequest();
-                const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
-                const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
+            const offsets = [];
+            // 5회 측정
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const offset = await fetchTimeOffset();
+                    offsets.push(offset);
+                    // 측정 간 100ms 딜레이만 주어 RTT 영향 최소화
+                    await new Promise(resolve => setTimeout(resolve, 100)); 
+                } catch (error) {
+                    logMessage(`측정 실패: ${error.message}`, 'error');
+                    return; // 한 번이라도 실패하면 중단
+                }
+            }
+            
+            if (offsets.length > 0) {
+                // 네트워크 지연이 가장 적은 (가장 빠른 응답을 보인) 최소 오프셋 값을 선택
+                const minOffset = Math.min(...offsets);
+                timeOffset = Math.round(minOffset); 
+                logMessage(`동기화 성공! 최종 보정값: ${timeOffset}ms (최소값 선택. 측정값: ${offsets.join(', ')})`, 'success');
+                updateClock(); // 동기화 직후 시계 강제 업데이트
+            }
+        }
+
+        // ⭐ 실제 시간 오차를 측정하는 Promise 기반 함수
+        function fetchTimeOffset() {
+            return new Promise((resolve, reject) => {
+                const requestStartTime = Date.now();
+                const xhr = new XMLHttpRequest();
                 
-                xhr.open("HEAD", proxyUrl, true);
-                xhr.setRequestHeader("accept", "application/json");
-                xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
-                
-                xhr.onreadystatechange = function () {
-                    if (xhr.readyState === 4) {
-                        if (xhr.status === 200) {
-                            const responseEndTime = Date.now();
-                            const roundTripTime = responseEndTime - requestStartTime;
-                            const serverDateHeader = xhr.getResponseHeader('Date');
-                            if (serverDateHeader) {
-                                const serverTime = new Date(serverDateHeader).getTime();
-                                const correctedLocalTime = requestStartTime + (roundTripTime / 2);
-                                resolve(serverTime - correctedLocalTime);
-                            } else {
-                                reject(new Error("서버 Date 헤더 없음"));
-                            }
-                        } else {
-                            if (xhr.status === 403) reject(new Error("프록시 접근 거부(403)"));
-                            else if (xhr.status === 429) reject(new Error("프록시 사용량 초과(429)"));
-                            else reject(new Error(`API 키 확인 필요 (상태: ${xhr.status})`));
-                        }
-                    }
-                };
-                xhr.send();
-            });
-        }
+                // CORS Anywhere 프록시 URL + Lost Ark API 엔드포인트 결합
+                const proxyUrl = `${CORS_PROXY_URL}${LA_API_ENDPOINT}`;
+                
+                xhr.open("HEAD", proxyUrl, true);
+                xhr.setRequestHeader("accept", "application/json");
+                xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
+                
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        const responseEndTime = Date.now(); // 응답 완료 시점
+                        const roundTripTime = responseEndTime - requestStartTime;
 
-        colorPicker.addEventListener('input', (event) => {
-            colors.secondsColor = event.target.value;
-            secondsArcEl.style.stroke = colors.secondsColor;
-        });
-        
-        apiKeySubmitButton.addEventListener('click', () => {
-            const inputKey = apiKeyInput.value.trim();
-            if (!inputKey) {
-                alert("API 키를 입력해주세요.");
-                return;
-            }
-            
-            apiKey = inputKey;
-            logMessage("API 키가 저장되었습니다.", "info");
+                        if (xhr.status === 200) {
+                            const serverDateHeader = xhr.getResponseHeader('Date');
+                            if (serverDateHeader) {
+                                const serverTime = new Date(serverDateHeader).getTime();
+                                // NTP 방식: 서버 시간 - (로컬 시작 시간 + RTT / 2)
+                                const correctedLocalTime = requestStartTime + (roundTripTime / 2);
+                                resolve(serverTime - correctedLocalTime);
+                            } else {
+                                reject(new Error("서버 Date 헤더 없음 (API 키 유효성 및 엔드포인트 확인)"));
+                            }
+                        } else {
+                            // 상세 오류 처리
+                            if (xhr.status === 403) reject(new Error("프록시 접근 거부(403). 프록시 서버 활성화 필요."));
+                            else if (xhr.status === 429) reject(new Error("프록시 사용량 초과(429). 잠시 후 재시도하세요."));
+                            else if (xhr.status === 401) reject(new Error("API 키 인증 실패(401). 키를 확인하세요."));
+                            else reject(new Error(`요청 실패 (상태: ${xhr.status})`));
+                        }
+                    }
+                };
+                xhr.send();
+            });
+        }
 
-            if (syncIntervalId) {
-                clearInterval(syncIntervalId);
-            }
-            
-            syncTime(); 
-            syncIntervalId = setInterval(syncTime, SYNC_INTERVAL);
-            
-            apiControls.remove();
-        });
+        colorPicker.addEventListener('input', (event) => {
+            colors.secondsColor = event.target.value;
+            secondsArcEl.style.stroke = colors.secondsColor;
+        });
+        
+        apiKeySubmitButton.addEventListener('click', () => {
+            const inputKey = apiKeyInput.value.trim();
+            if (!inputKey) {
+                alert("API 키를 입력해주세요.");
+                return;
+            }
+            
+            apiKey = inputKey;
+            logMessage("API 키가 저장되었습니다.", "info");
 
-        manualSyncButton.addEventListener('click', syncTime);
+            if (syncIntervalId) {
+                clearInterval(syncIntervalId);
+            }
+            
+            syncTime(); 
+            syncIntervalId = setInterval(syncTime, SYNC_INTERVAL);
+            
+            apiControls.remove();
+        });
 
-        applyColors();
-        setInterval(updateClock, 200);
-    </script>
+        manualSyncButton.addEventListener('click', syncTime);
+
+        applyColors();
+        setInterval(updateClock, 200);
+    </script>
 </body>
 </html>
