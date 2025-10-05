@@ -202,41 +202,39 @@
         }
 
         function fetchTimeOffset() {
-    return new Promise((resolve, reject) => {
-        const requestStartTime = Date.now();
-        const xhr = new XMLHttpRequest();
-        
-        // 1. 프록시 URL 대신 원래 API URL을 직접 사용
-        const url = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
-        
-        // 2. HEAD 대신 GET 방식으로 변경
-        xhr.open("GET", url, true); 
-        
-        xhr.setRequestHeader("accept", "application/json");
-        xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
-        
-        xhr.onreadystatechange = function () {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    const responseEndTime = Date.now();
-                    const roundTripTime = responseEndTime - requestStartTime;
-                    const serverDateHeader = xhr.getResponseHeader('Date');
-
-                    if (serverDateHeader) {
-                        const serverTime = new Date(serverDateHeader).getTime();
-                        const correctedLocalTime = requestStartTime + (roundTripTime / 2);
-                        resolve(serverTime - correctedLocalTime);
-                    } else {
-                        reject(new Error("서버 Date 헤더 없음"));
+            return new Promise((resolve, reject) => {
+                const requestStartTime = Date.now();
+                const xhr = new XMLHttpRequest();
+                const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
+                const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
+                
+                xhr.open("HEAD", proxyUrl, true);
+                xhr.setRequestHeader("accept", "application/json");
+                xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
+                
+                xhr.onreadystatechange = function () {
+                    if (xhr.readyState === 4) {
+                        if (xhr.status === 200) {
+                            const responseEndTime = Date.now();
+                            const roundTripTime = responseEndTime - requestStartTime;
+                            const serverDateHeader = xhr.getResponseHeader('Date');
+                            if (serverDateHeader) {
+                                const serverTime = new Date(serverDateHeader).getTime();
+                                const correctedLocalTime = requestStartTime + (roundTripTime / 2);
+                                resolve(serverTime - correctedLocalTime);
+                            } else {
+                                reject(new Error("서버 Date 헤더 없음"));
+                            }
+                        } else {
+                            if (xhr.status === 403) reject(new Error("프록시 접근 거부(403)"));
+                            else if (xhr.status === 429) reject(new Error("프록시 사용량 초과(429)"));
+                            else reject(new Error(`API 키 확인 필요 (상태: ${xhr.status})`));
+                        }
                     }
-                } else {
-                    reject(new Error(`API 키 또는 연결 오류 확인 필요 (상태: ${xhr.status})`)); 
-                }
-            }
-        };
-        xhr.send();
-    });
-}
+                };
+                xhr.send();
+            });
+        }
 
         colorPicker.addEventListener('input', (event) => {
             colors.secondsColor = event.target.value;
@@ -268,6 +266,7 @@
         applyColors();
         setInterval(updateClock, 10);
     </script>
+
 
 
 </body></html>
