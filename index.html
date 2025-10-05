@@ -180,10 +180,10 @@
                 alert("API 키가 입력되지 않았습니다.");
                 return;
             }
-            console.log("정밀 동기화를 시작합니다 (5회 측정)...");
+            console.log("정밀 동기화를 시작합니다 (3회 측정)...");
 
             const offsets = [];
-            for (let i = 0; i < 5; i++) {
+            for (let i = 0; i < 3; i++) {
                 try {
                     const offset = await fetchTimeOffset();
                     offsets.push(offset);
