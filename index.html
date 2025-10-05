@@ -113,7 +113,7 @@
             <circle class="seconds-arc" cx="50" cy="50" r="40"></circle>
         </svg>
         <div id="digital-time">00:00:00</div>
-        <div id="date-display">----.--.--. -요일</div>
+        <div id="date-display">2025.01.01. 수요일</div>
     </div>
     
     <div id="status-log"></div>
@@ -194,9 +194,10 @@
             }
             logMessage("서버 시간 동기화를 시작합니다...", 'info');
             const xhr = new XMLHttpRequest();
-            const url = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
+            const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
+            const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
             
-            xhr.open("HEAD", url, true);
+            xhr.open("HEAD", proxyUrl, true);
             xhr.setRequestHeader("accept", "application/json");
             xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
             
@@ -210,7 +211,13 @@
                         logMessage(`동기화 성공! 서버 시간과의 차이: ${timeOffset}ms`, 'success');
                     }
                 } else if (xhr.readyState === 4) {
-                    logMessage("동기화 실패. API 키가 유효한지 또는 CORS 정책을 확인해주세요.", 'error');
+                     if (xhr.status === 403) {
+                        logMessage("프록시 접근 거부(403). https://cors-anywhere.herokuapp.com/corsdemo 에 방문하여 버튼을 클릭해주세요.", 'error');
+                    } else if (xhr.status === 429) {
+                        logMessage("프록시 사용량 초과(429). 1분 후에 다시 시도됩니다.", 'error');
+                    } else {
+                        logMessage("동기화 실패. API 키가 유효한지 확인해주세요.", 'error');
+                    }
                 }
             };
             xhr.send();
