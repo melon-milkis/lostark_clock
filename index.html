@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>로아 시간 동기화 시계</title>
+    <title>로아 시간 동기화 시계 (Netlify)</title>
     <style>
         body {
             display: flex;
@@ -187,70 +187,34 @@
             secondsArcEl.style.strokeDashoffset = offset;
         }
 
-        async function syncTime() {
+        function syncTime() {
             if (!apiKey) {
                 logMessage("API 키가 입력되지 않았습니다.", 'error');
                 return;
             }
-            logMessage("정밀 동기화를 시작합니다 (3회 측정)...", 'info');
-
-            const offsets = [];
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const offset = await fetchTimeOffset();
-                    offsets.push(offset);
-                    if (i < 2) {
-                        await new Promise(resolve => setTimeout(resolve, 300));
-                    }
-                } catch (error) {
-                    logMessage(`측정 실패: ${error.message}`, 'error');
-                    return; 
-                }
-            }
+            logMessage("서버 시간 동기화를 시작합니다...", 'info');
             
-            if (offsets.length > 0) {
-                const avgOffset = offsets.reduce((a, b) => a + b, 0) / offsets.length;
-                timeOffset = Math.round(avgOffset);
-                logMessage(`동기화 성공! 최종 보정값: ${timeOffset}ms (측정값: ${offsets.map(o => Math.round(o)).join(', ')})`, 'success');
-            }
-        }
-
-        function fetchTimeOffset() {
-            return new Promise((resolve, reject) => {
-                const requestStartTime = Date.now();
-                const xhr = new XMLHttpRequest();
-                const originalUrl = 'https://developer-lostark.game.onstove.com/characters/melonmilkis/siblings';
-                const proxyUrl = `https://cors-anywhere.herokuapp.com/${originalUrl}`;
-                
-                xhr.open("HEAD", proxyUrl, true);
-                xhr.setRequestHeader("accept", "application/json");
-                xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
-                
-                xhr.onload = function() {
-                    if (xhr.status === 200) {
-                        const responseEndTime = Date.now();
-                        const roundTripTime = responseEndTime - requestStartTime;
-                        const serverDateHeader = xhr.getResponseHeader('Date');
-                        if (serverDateHeader) {
-                            const serverTime = new Date(serverDateHeader).getTime();
-                            const correctedLocalTime = requestStartTime + (roundTripTime / 2);
-                            resolve(serverTime - correctedLocalTime);
-                        } else {
-                            reject(new Error("서버 Date 헤더 없음"));
-                        }
-                    } else {
-                        if (xhr.status === 403) reject(new Error("프록시 접근 거부(403)"));
-                        else if (xhr.status === 429) reject(new Error("프록시 사용량 초과(429)"));
-                        else reject(new Error(`API 키 확인 필요 (상태: ${xhr.status})`));
+            const xhr = new XMLHttpRequest();
+            // ▼▼▼ 이 부분을 Netlify에서 받은 본인의 주소로 변경 ▼▼▼
+            const url = `https://creative-dolphin-1fd111.netlify.app/api/characters/melonmilkis/siblings`;
+            
+            xhr.open("HEAD", url, true);
+            xhr.setRequestHeader("accept", "application/json");
+            xhr.setRequestHeader("authorization", `bearer ${apiKey}`);
+            
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    const serverDateHeader = xhr.getResponseHeader('Date');
+                    if (serverDateHeader) {
+                        const serverTime = new Date(serverDateHeader).getTime();
+                        timeOffset = serverTime - Date.now();
+                        logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms`, 'success');
                     }
-                };
-                
-                xhr.onerror = function() {
-                    reject(new Error("네트워크 오류 발생"));
-                };
-
-                xhr.send();
-            });
+                } else if (xhr.readyState === 4) {
+                    logMessage("동기화 실패. API 키가 유효한지 또는 Netlify 설정을 확인해주세요.", 'error');
+                }
+            };
+            xhr.send();
         }
 
         colorPicker.addEventListener('input', (event) => {
