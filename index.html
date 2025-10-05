@@ -119,9 +119,9 @@
     <div id="status-log"></div>
 
     <script>
-        // ⭐ 상수 정의
+        // ⭐ 변경된 상수 정의
         const CORS_PROXY_URL = 'https://cors-anywhere.herokuapp.com/';
-        // HEAD 요청에 적합한 유효한 API 엔드포인트
+        // API 엔드포인트를 HEAD 요청에 적합한 경로로 변경
         const LA_API_ENDPOINT = 'https://developer-lostark.game.onstove.com/news/notices'; 
         
         const colors = {
@@ -133,7 +133,7 @@
             analogBgColor: '#eeeeee'
         };
 
-        const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6; // 4시간마다 동기화
+        const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6;
         let apiKey = "";
         let timeOffset = 0;
         let syncIntervalId = null;
@@ -192,7 +192,7 @@
             secondsArcEl.style.strokeDashoffset = offset;
         }
 
-        // ⭐ 정밀 시간 측정을 위한 비동기 함수 (5회 최소값 선택)
+        // ⭐ 정밀 시간 측정을 위한 비동기 함수
         async function syncTime() {
             if (!apiKey) {
                 logMessage("API 키가 입력되지 않았습니다.", 'error');
@@ -216,11 +216,11 @@
             }
             
             if (offsets.length > 0) {
-                // 네트워크 지연이 가장 적은 (가장 빠른 응답을 보인) 최소 오프셋 값을 선택
+                // 평균 대신, 가장 빠른 측정값(가장 RTT가 짧은 값)을 사용하는 것이 일반적으로 정확합니다.
                 const minOffset = Math.min(...offsets);
                 timeOffset = Math.round(minOffset); 
                 logMessage(`동기화 성공! 최종 보정값: ${timeOffset}ms (최소값 선택. 측정값: ${offsets.join(', ')})`, 'success');
-                updateClock(); // 동기화 직후 시계 강제 업데이트
+                updateClock(); // ⭐ 동기화 직후 시계 강제 업데이트
             }
         }
 
@@ -230,8 +230,8 @@
                 const requestStartTime = Date.now();
                 const xhr = new XMLHttpRequest();
                 
-                // CORS Anywhere 프록시 URL + Lost Ark API 엔드포인트 결합
-                const proxyUrl = `${CORS_PROXY_URL}${LA_API_ENDPOINT}`;
+                const originalUrl = LA_API_ENDPOINT; // 유효한 API 엔드포인트 사용
+                const proxyUrl = `${CORS_PROXY_URL}${originalUrl}`;
                 
                 xhr.open("HEAD", proxyUrl, true);
                 xhr.setRequestHeader("accept", "application/json");
