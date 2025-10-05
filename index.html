@@ -124,11 +124,11 @@
             analogBgColor: '#eeeeee'
         };
 
-        // Workers URL을 상수로 정의 (Workers URL은 변경하지 마세요)
-        const PROXY_WORKER_URL = 'https://melonmilkis.sshyun1133.workers.dev/characters/melonmilkis/siblings';
+        // Workers URL에 유효한 Lost Ark API 엔드포인트를 추가 (핵심 수정)
+        // /news/notices는 HEAD 요청에 적합하고, 인증만 통과하면 Date 헤더를 얻을 수 있습니다.
+        const PROXY_WORKER_URL = 'https://melonmilkis.sshyun1133.workers.dev/news/notices';
 
         const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6;
-        // API 키를 Workers에서 관리하므로, 이 변수는 더 이상 사용하지 않습니다.
         let timeOffset = 0;
         let syncIntervalId = null;
         
@@ -189,9 +189,8 @@
             const requestStartTime = Date.now();
             
             const xhr = new XMLHttpRequest();
-            // Workers URL로 직접 요청
             xhr.open("HEAD", PROXY_WORKER_URL, true);
-            // API 키 헤더 제거
+            // API 키 헤더는 Workers에서 처리하므로 클라이언트에서는 불필요
             
             xhr.onreadystatechange = function () {
                 if (xhr.readyState === 4) {
@@ -202,7 +201,6 @@
                         const serverDateHeader = xhr.getResponseHeader('Date');
                         if (serverDateHeader) {
                             const serverTime = new Date(serverDateHeader).getTime();
-                            // 왕복 시간의 절반을 빼서 서버 도착 시간을 추정합니다.
                             const correctedLocalTime = requestStartTime + (roundTripTime / 2);
                             timeOffset = serverTime - correctedLocalTime;
                             logMessage(`동기화 성공! 오차 보정값: ${timeOffset}ms (왕복: ${roundTripTime}ms)`, 'success');
