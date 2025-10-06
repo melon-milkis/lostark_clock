@@ -171,8 +171,6 @@
             if (typeof data.finalOffset === 'undefined') throw new Error('응답에 finalOffset 정보가 없습니다.');
 
             const roundTripTime = responseEndTime - requestStartTime;
-            
-            // --- 🎯 여기에 보정 공식이 RTT/2 를 더하는 방식으로 변경되었습니다 ---
             const correctedOffset = data.finalOffset + (roundTripTime / 2);
             
             return { offset: Math.round(correctedOffset), rtt: roundTripTime };
