@@ -2,143 +2,44 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>로아 서버 시계</title>
+    <title>점진적 정밀화 동기화 시계 (오차 측정)</title>
     <style>
-        :root {
-            --seconds-color: #28a745;
-        }
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-            background-color: #f0f0f0;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-            flex-direction: column;
-            gap: 20px;
-        }
-        .controls {
-            display: flex;
-            gap: 15px;
-            align-items: center;
-            padding: 10px 15px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        .controls label {
-            font-size: 14px;
-        }
-        .color-picker-wrapper {
-            position: relative;
-            width: 30px;
-            height: 30px;
-            border: 1px solid #ccc;
-            border-radius: 50%;
-            overflow: hidden;
-            box-sizing: border-box;
-        }
-        .controls input[type="color"] {
-            position: absolute;
-            top: -5px;
-            left: -5px;
-            width: 40px;
-            height: 40px;
-            opacity: 0;
-            cursor: pointer;
-        }
-        .controls button {
-            border: none;
-            background-color: #007bff;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .controls button:hover {
-            background-color: #0056b3;
-        }
-        .clock-container {
-            width: 300px;
-            height: 300px;
-            border-radius: 50%;
-            border: 1px solid #e0e0e0;
-            background-color: #ffffff;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            position: relative;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            user-select: none;
-        }
-        .analog-clock {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            transform: rotate(-90deg);
-        }
-        .analog-clock circle {
-            fill: none;
-        }
-        .clock-bg {
-            stroke: #eeeeee;
-            stroke-width: 4;
-        }
-        .seconds-arc {
-            stroke: var(--seconds-color);
-            stroke-width: 4;
-            stroke-linecap: round;
-            transition: stroke 0.3s;
-        }
-        #digital-time {
-            font-size: 3rem;
-            font-weight: 500;
-            color: #333;
-            z-index: 10;
-        }
-        #digital-time .seconds {
-            color: var(--seconds-color);
-            transition: color 0.3s;
-        }
-        #date-display {
-            font-size: 1rem;
-            color: #888;
-            z-index: 10;
-            margin-top: 5px;
-        }
-        #status-log {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #555;
-            height: 1.2em;
-        }
-        .nonselect {
-            user-select: none;
-        }
+        :root { --seconds-color: #28a745; }
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; flex-direction: column; gap: 20px; }
+        .controls { display: flex; gap: 15px; align-items: center; padding: 10px 15px; background-color: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .controls label { font-size: 14px; }
+        .color-picker-wrapper { position: relative; width: 30px; height: 30px; border: 1px solid #ccc; border-radius: 50%; overflow: hidden; box-sizing: border-box; }
+        .controls input[type="color"] { position: absolute; top: -5px; left: -5px; width: 40px; height: 40px; opacity: 0; cursor: pointer; }
+        .controls button { border: none; background-color: #007bff; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
+        .controls button:hover { background-color: #0056b3; }
+        .clock-container { width: 300px; height: 300px; border-radius: 50%; border: 1px solid #e0e0e0; background-color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); user-select: none; }
+        .analog-clock { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+        .analog-clock circle { fill: none; }
+        .clock-bg { stroke: #eeeeee; stroke-width: 4; }
+        .seconds-arc { stroke: var(--seconds-color); stroke-width: 4; stroke-linecap: round; transition: stroke 0.3s; }
+        #digital-time { font-size: 3rem; font-weight: 500; color: #333; z-index: 10; }
+        #digital-time .seconds { color: var(--seconds-color); transition: color 0.3s; }
+        #date-display { font-size: 1rem; color: #888; z-index: 10; margin-top: 5px; }
+        #status-log { margin-top: 10px; font-size: 12px; color: #555; height: 1.2em; }
     </style>
 </head>
 <body>
     <div class="controls">
-        <label for="color-picker" class="nonselect">색상</label>
+        <label for="color-picker">색상:</label>
         <div class="color-picker-wrapper">
             <input type="color" id="color-picker" value="#28a745">
         </div>
-        <button id="manual-sync-button" class="nonselect">동기화</button>
+        <button id="manual-sync-button">수동 동기화</button>
     </div>
     <div class="clock-container">
         <svg class="analog-clock" viewBox="0 0 100 100">
             <circle class="clock-bg" cx="50" cy="50" r="45"></circle>
             <circle class="seconds-arc" cx="50" cy="50" r="45"></circle>
         </svg>
-        <div id="digital-time" class="nonselect">--:--:<span class="seconds nonselect" >--</span></div>
-        <div id="date-display" class="nonselect">----.--.--. ---</div>
+        <div id="digital-time">--:--:<span class="seconds">--</span></div>
+        <div id="date-display">----.--.--. ---</div>
     </div>
-    <div id="status-log" class="nonselect"></div>
+    <div id="status-log"></div>
 
     <script>
         const WORKER_URL = 'https://token.sshyun1133.workers.dev/';
@@ -173,14 +74,12 @@
             
             return { offset: Math.round(correctedOffset), rtt: roundTripTime };
         }
-        
+
         async function syncTime() {
             statusLogEl.textContent = '🔄 동기화 및 기록 갱신 시도...';
-            console.log('🔄 동기화 및 기록 갱신 시도...');
             try {
                 const newMeasurement = await fetchSingleMeasurement();
-                console.log(`- 신규 측정: RTT ${newMeasurement.rtt}ms, 오프셋 ${newMeasurement.offset}ms`);
-
+                
                 const storedBestJSON = localStorage.getItem(BEST_MEASUREMENTS_KEY);
                 let bestMeasurements = storedBestJSON ? JSON.parse(storedBestJSON) : [];
 
@@ -194,14 +93,15 @@
                 timeOffset = Math.round(sumOfBestOffsets / bestMeasurements.length);
 
                 const syncCompleteTime = new Date().toLocaleTimeString();
-                statusLogEl.textContent = `✅ 동기화 완료 (표본: ${bestMeasurements.length}개)`;
                 
+                // --- 🎯 RTT 값을 상태 메시지에 추가 ---
+                statusLogEl.textContent = `✅ 동기화 완료 (응답속도: ${newMeasurement.rtt}ms)`;
+                
+                console.log(`- 신규 측정: RTT ${newMeasurement.rtt}ms, 오프셋 ${newMeasurement.offset}ms`);
                 console.log(`👍 최고 기록 ${bestMeasurements.length}개 기반으로 동기화 성공. 최종 오프셋: ${timeOffset}ms`);
-                console.log('현재 최고 기록 명단:', bestMeasurements);
 
             } catch (error) {
                 statusLogEl.textContent = `❌ 동기화 실패: ${error.message}`;
-                console.error('동기화 실패:', error);
             }
         }
         
