@@ -96,8 +96,8 @@
         .log-success { color: green; font-weight: bold; }
         .log-error { color: red; font-weight: bold; }
         .clock-container,
-        #digital-time,
-        #date-display {
+        .nonselect-font
+        {
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
@@ -106,17 +106,17 @@
     </style>
 </head>
 <body>
-    
-    <div id="persistent-controls" class="controls">
-        <label for="color-picker">색상:</label>
-        <input type="color" id="color-picker" value="#28a745">
-        <button id="manual-sync-button">수동 동기화</button>
-    </div>
 
     <div id="api-controls" class="controls">
-        <label for="api-key-input">API 키:</label>
-        <input type="text" id="api-key-input" placeholder="Lost Ark API Key">
-        <button id="api-key-submit">키 저장 및 동기화</button>
+        <label for="api-key-input" class="nonselect-font">API 키:</label>
+        <input type="text" id="api-key-input" placeholder="여기에 로스트아크 API 키를 붙여넣으세요">
+        <button id="api-key-submit" class="nonselect-font">적용</button>
+    </div>
+    
+    <div id="persistent-controls" class="controls">
+        <label for="color-picker" class="nonselect-font">색상:</label>
+        <input type="color" id="color-picker" value="#28a745">
+        <button id="manual-sync-button" class="nonselect-font">수동 동기화</button>
     </div>
 
     <div class="clock-container" style="background-color: rgb(255, 255, 255); border-color: rgb(224, 224, 224);">
@@ -124,8 +124,8 @@
             <circle class="clock-bg" cx="50" cy="50" r="40" style="stroke: rgb(238, 238, 238);"></circle>
             <circle class="seconds-arc" cx="50" cy="50" r="40" style="stroke-dasharray: 251.327; stroke: rgb(40, 167, 69); stroke-dashoffset: 164.753;"></circle>
         </svg>
-        <div id="digital-time" style="color: rgb(51, 51, 51);">--:--:<span class="seconds" style="color: #28a745;">--</span></div>
-        <div id="date-display" style="color: rgb(136, 136, 136);">--. --. --. ----요일</div>
+        <div id="digital-time" style="color: rgb(51, 51, 51);" class="nonselect-font">--:--:<span class="seconds" style="color: #28a745;">--</span></div>
+        <div id="date-display" style="color: rgb(136, 136, 136);" class="nonselect-font">--. --. --. ----요일</div>
     </div>
     
     <div id="status-log"></div>
