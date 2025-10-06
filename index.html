@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>점진적 정밀화 동기화 시계 (오차 측정)</title>
+    <title>로아 서버 시계</title>
     <style>
         :root { --seconds-color: #28a745; }
         body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; flex-direction: column; gap: 20px; }
@@ -70,7 +70,9 @@
             if (typeof data.finalOffset === 'undefined') throw new Error('응답에 finalOffset 정보가 없습니다.');
 
             const roundTripTime = responseEndTime - requestStartTime;
-            const correctedOffset = data.finalOffset + (roundTripTime / 2);
+            
+            // --- 🎯 여기에 보정 공식이 변경되었습니다 ---
+            const correctedOffset = data.finalOffset - roundTripTime;
             
             return { offset: Math.round(correctedOffset), rtt: roundTripTime };
         }
@@ -93,12 +95,7 @@
                 timeOffset = Math.round(sumOfBestOffsets / bestMeasurements.length);
 
                 const syncCompleteTime = new Date().toLocaleTimeString();
-                
-                // --- 🎯 RTT 값을 상태 메시지에 추가 ---
                 statusLogEl.textContent = `✅ 동기화 완료 (응답속도: ${newMeasurement.rtt}ms)`;
-                
-                console.log(`- 신규 측정: RTT ${newMeasurement.rtt}ms, 오프셋 ${newMeasurement.offset}ms`);
-                console.log(`👍 최고 기록 ${bestMeasurements.length}개 기반으로 동기화 성공. 최종 오프셋: ${timeOffset}ms`);
 
             } catch (error) {
                 statusLogEl.textContent = `❌ 동기화 실패: ${error.message}`;
