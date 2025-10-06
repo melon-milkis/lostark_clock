@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Lost Ark API Worker 디버그</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background-color: #f4f4f4; }
+        .container { background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; }
+        pre { background-color: #333; color: #fff; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .status { font-weight: bold; margin-bottom: 15px; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lost Ark API Worker 디버그</h1>
+        <div id="status-display" class="status">요청 대기 중...</div>
+        <button id="fetch-button">Worker 요청 시작</button>
+        
+        <h2>전송 헤더 (Worker가 API 서버로 보냄)</h2>
+        <p>Worker가 시크릿 키를 삽입하므로, 이 헤더는 클라이언트에서 확인되지 않습니다.</p>
+
+        <h2>응답 전문</h2>
+        <pre id="response-output">요청 버튼을 눌러주세요.</pre>
+        
+        <h2>응답 헤더 (Date 헤더 확인)</h2>
+        <pre id="header-output">응답 헤더가 여기에 출력됩니다.</pre>
+    </div>
+
+    <script>
+        // ⭐️⭐️⭐️ Worker URL과 API 경로를 정확히 입력해 주세요! ⭐️⭐️⭐️
+        const WORKER_URL_BASE = 'https://melonmilkis.workers.dev'; 
+        const API_PATH = '/characters/melonmilkis/siblings'; 
+        const proxyUrl = WORKER_URL_BASE + API_PATH;
+
+        const statusDisplay = document.getElementById('status-display');
+        const responseOutput = document.getElementById('response-output');
+        const headerOutput = document.getElementById('header-output');
+        const fetchButton = document.getElementById('fetch-button');
+
+        async function fetchApiData() {
+            statusDisplay.textContent = 'Worker 요청 중...';
+            statusDisplay.className = 'status';
+            responseOutput.textContent = '...';
+            headerOutput.textContent = '...';
+            
+            try {
+                const response = await axios({
+                    url: proxyUrl,
+                    method: 'get',
+                    // Worker가 Authorization 헤더를 삽입하므로 여기서는 최소한의 헤더만 보냅니다.
+                    headers: { 'accept': 'application/json' },
+                });
+
+                // 1. 상태 출력
+                statusDisplay.textContent = `요청 성공! HTTP 상태: ${response.status} ${response.statusText}`;
+                statusDisplay.classList.add('success');
+
+                // 2. 응답 본문 출력 (JSON 형태)
+                responseOutput.textContent = JSON.stringify(response.data, null, 2);
+
+                // 3. 응답 헤더 출력
+                let headersText = '';
+                // Axios 응답 헤더는 소문자로 접근해야 합니다.
+                for (const key in response.headers) {
+                    headersText += `${key}: ${response.headers[key]}\n`;
+                }
+                headerOutput.textContent = headersText;
+                
+                // ⭐️ Date 헤더 최종 확인
+                const dateHeader = response.headers.date;
+                if (dateHeader) {
+                    headerOutput.textContent += `\n\n--- 최종 확인 ---\nDATE 헤더 존재: ${dateHeader}`;
+                } else {
+                    headerOutput.textContent += `\n\n--- 최종 확인 ---\nDATE 헤더 없음! (Worker 응답 헤더 소실됨)`;
+                }
+
+            } catch (error) {
+                let status = '통신 오류';
+                let responseBody = '응답 본문 없음';
+                
+                if (error.response) {
+                    status = `API 오류 발생: HTTP ${error.response.status}`;
+                    responseBody = JSON.stringify(error.response.data, null, 2) || '본문 없음';
+                } else {
+                    status = `네트워크 연결 실패: ${error.message}`;
+                }
+
+                statusDisplay.textContent = status;
+                statusDisplay.classList.add('error');
+                responseOutput.textContent = `오류 본문:\n${responseBody}`;
+                headerOutput.textContent = '요청이 Lost Ark 서버에 도달하지 못했거나 인증에 실패했습니다.';
+            }
+        }
+
+        fetchButton.addEventListener('click', fetchApiData);
+        // 페이지 로드 시 바로 실행
+        fetchApiData();
+    </script>
+</body>
+</html>
