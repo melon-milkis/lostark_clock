@@ -248,7 +248,6 @@
             const offset = circumference * (1 - arcPercentage);
             secondsArcEl.style.strokeDashoffset = offset;
             
-            requestAnimationFrame(updateClock);
         }
         
         function handleColorChange(event) {
@@ -276,8 +275,7 @@
             await syncTime();
             
             setInterval(syncTime, SYNC_INTERVAL);
-            
-            requestAnimationFrame(updateClock);
+            setInterval(updateClock, 50);
         }
 
         initializeClock();
