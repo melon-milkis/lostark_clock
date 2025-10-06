@@ -2,25 +2,137 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>로아 서버 시계</title>
+    <title>RTT 차감 보정 시계</title>
     <style>
-        :root { --seconds-color: #28a745; }
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f0f0f0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; flex-direction: column; gap: 20px; }
-        .controls { display: flex; gap: 15px; align-items: center; padding: 10px 15px; background-color: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .controls label { font-size: 14px; }
-        .color-picker-wrapper { position: relative; width: 30px; height: 30px; border: 1px solid #ccc; border-radius: 50%; overflow: hidden; box-sizing: border-box; }
-        .controls input[type="color"] { position: absolute; top: -5px; left: -5px; width: 40px; height: 40px; opacity: 0; cursor: pointer; }
-        .controls button { border: none; background-color: #007bff; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; transition: background-color 0.2s; }
-        .controls button:hover { background-color: #0056b3; }
-        .clock-container { width: 300px; height: 300px; border-radius: 50%; border: 1px solid #e0e0e0; background-color: #ffffff; display: flex; flex-direction: column; justify-content: center; align-items: center; position: relative; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); user-select: none; }
-        .analog-clock { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
-        .analog-clock circle { fill: none; }
-        .clock-bg { stroke: #eeeeee; stroke-width: 4; }
-        .seconds-arc { stroke: var(--seconds-color); stroke-width: 4; stroke-linecap: round; transition: stroke 0.3s; }
-        #digital-time { font-size: 3rem; font-weight: 500; color: #333; z-index: 10; }
-        #digital-time .seconds { color: var(--seconds-color); transition: color 0.3s; }
-        #date-display { font-size: 1rem; color: #888; z-index: 10; margin-top: 5px; }
-        #status-log { margin-top: 10px; font-size: 12px; color: #555; height: 1.2em; }
+        :root {
+            --seconds-color: #28a745;
+        }
+
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .controls {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls label {
+            font-size: 14px;
+        }
+
+        .color-picker-wrapper {
+            position: relative;
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ccc;
+            border-radius: 50%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        .controls input[type="color"] {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 40px;
+            height: 40px;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .controls button {
+            border: none;
+            background-color: #007bff;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+
+        .clock-container {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            border: 1px solid #e0e0e0;
+            background-color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            user-select: none;
+        }
+
+        .analog-clock {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .analog-clock circle {
+            fill: none;
+        }
+
+        .clock-bg {
+            stroke: #eeeeee;
+            stroke-width: 4;
+        }
+
+        .seconds-arc {
+            stroke: var(--seconds-color);
+            stroke-width: 4;
+            stroke-linecap: round;
+            transition: stroke 0.3s;
+        }
+
+        #digital-time {
+            font-size: 3rem;
+            font-weight: 500;
+            color: #333;
+            z-index: 10;
+        }
+
+        #digital-time .seconds {
+            color: var(--seconds-color);
+            transition: color 0.3s;
+        }
+
+        #date-display {
+            font-size: 1rem;
+            color: #888;
+            z-index: 10;
+            margin-top: 5px;
+        }
+
+        #status-log {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #555;
+            height: 1.2em;
+        }
     </style>
 </head>
 <body>
@@ -70,8 +182,6 @@
             if (typeof data.finalOffset === 'undefined') throw new Error('응답에 finalOffset 정보가 없습니다.');
 
             const roundTripTime = responseEndTime - requestStartTime;
-            
-            // --- 🎯 여기에 보정 공식이 변경되었습니다 ---
             const correctedOffset = data.finalOffset - roundTripTime;
             
             return { offset: Math.round(correctedOffset), rtt: roundTripTime };
@@ -79,11 +189,15 @@
 
         async function syncTime() {
             statusLogEl.textContent = '🔄 동기화 및 기록 갱신 시도...';
+            console.log('🔄 동기화 및 기록 갱신 시도...');
             try {
                 const newMeasurement = await fetchSingleMeasurement();
-                
+                console.log(`- 신규 측정: RTT ${newMeasurement.rtt}ms, 오프셋 ${newMeasurement.offset}ms`);
+
                 const storedBestJSON = localStorage.getItem(BEST_MEASUREMENTS_KEY);
                 let bestMeasurements = storedBestJSON ? JSON.parse(storedBestJSON) : [];
+                
+                const oldBestRtt = bestMeasurements.length > 0 ? bestMeasurements[0].rtt : Infinity;
 
                 bestMeasurements.push(newMeasurement);
                 bestMeasurements.sort((a, b) => a.rtt - b.rtt);
@@ -91,14 +205,22 @@
 
                 localStorage.setItem(BEST_MEASUREMENTS_KEY, JSON.stringify(bestMeasurements));
                 
+                if (bestMeasurements.length > 0 && bestMeasurements[0].rtt < oldBestRtt) {
+                    console.log(`🏆 최고 기록 갱신! (기존: ${oldBestRtt}ms -> 신규: ${bestMeasurements[0].rtt}ms)`);
+                }
+                
                 const sumOfBestOffsets = bestMeasurements.reduce((sum, m) => sum + m.offset, 0);
                 timeOffset = Math.round(sumOfBestOffsets / bestMeasurements.length);
 
                 const syncCompleteTime = new Date().toLocaleTimeString();
-                statusLogEl.textContent = `✅ 동기화 완료 (응답속도: ${newMeasurement.rtt}ms)`;
+                statusLogEl.textContent = `✅ 동기화 완료 (표본: ${bestMeasurements.length}개)`;
+                
+                console.log(`👍 최고 기록 ${bestMeasurements.length}개 기반으로 동기화 성공. 최종 오프셋: ${timeOffset}ms`);
+                console.log('현재 최고 기록 명단:', bestMeasurements);
 
             } catch (error) {
                 statusLogEl.textContent = `❌ 동기화 실패: ${error.message}`;
+                console.error('동기화 실패:', error);
             }
         }
         
