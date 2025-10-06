@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>RTT 차감 보정 시계</title>
+    <title>로아 서버 시계</title>
     <style>
         :root {
             --seconds-color: #28a745;
@@ -137,11 +137,11 @@
 </head>
 <body>
     <div class="controls">
-        <label for="color-picker">색상:</label>
+        <label for="color-picker">색상</label>
         <div class="color-picker-wrapper">
             <input type="color" id="color-picker" value="#28a745">
         </div>
-        <button id="manual-sync-button">수동 동기화</button>
+        <button id="manual-sync-button">동기화</button>
     </div>
     <div class="clock-container">
         <svg class="analog-clock" viewBox="0 0 100 100">
@@ -213,7 +213,7 @@
                 timeOffset = Math.round(sumOfBestOffsets / bestMeasurements.length);
 
                 const syncCompleteTime = new Date().toLocaleTimeString();
-                statusLogEl.textContent = `✅ 동기화 완료 (표본: ${bestMeasurements.length}개)`;
+                statusLogEl.textContent = `✅ 동기화 완료`;
                 
                 console.log(`👍 최고 기록 ${bestMeasurements.length}개 기반으로 동기화 성공. 최종 오프셋: ${timeOffset}ms`);
                 console.log('현재 최고 기록 명단:', bestMeasurements);
