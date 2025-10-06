@@ -2,11 +2,11 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>로아 시간 동기화 시계</title>
-    
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
+    <title>로아 서버 시계</title>
     <style>
+        :root {
+            --seconds-color: #28a745;
+        }
         body {
             display: flex;
             justify-content: center;
@@ -22,24 +22,31 @@
             display: flex;
             gap: 15px;
             align-items: center;
-            padding: 10px;
+            padding: 10px 15px;
             background-color: white;
             border-radius: 8px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
-        .controls label { font-size: 14px; }
-        .controls input[type="color"] {
-            width: 40px;
+        .controls label {
+            font-size: 14px;
+        }
+        .color-picker-wrapper {
+            position: relative;
+            width: 30px;
             height: 30px;
-            border: none;
-            cursor: pointer;
-            background: none;
-            padding: 0;
-        }
-        .controls input[type="text"] {
             border: 1px solid #ccc;
-            border-radius: 4px;
-            padding: 5px 8px;
+            border-radius: 50%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        .controls input[type="color"] {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 40px;
+            height: 40px;
+            opacity: 0;
+            cursor: pointer;
         }
         .controls button {
             border: none;
@@ -48,125 +55,156 @@
             padding: 6px 12px;
             border-radius: 4px;
             cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .controls button:hover {
+            background-color: #0056b3;
         }
         .clock-container {
             width: 300px;
             height: 300px;
-            border-radius: 100%;
-            border: 1px solid;
+            border-radius: 50%;
+            border: 1px solid #e0e0e0;
+            background-color: #ffffff;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
             position: relative;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            user-select: none;
         }
         .analog-clock {
-            position: absolute; top: 0; left: 0;
-            width: 100%; height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             transform: rotate(-90deg);
         }
-        .analog-clock circle { fill: none; }
-        .clock-bg { stroke-width: 3.2; }
+        .analog-clock circle {
+            fill: none;
+        }
+        .clock-bg {
+            stroke: #eeeeee;
+            stroke-width: 4;
+        }
         .seconds-arc {
-            stroke-width: 3.2;
+            stroke: var(--seconds-color);
+            stroke-width: 4;
             stroke-linecap: round;
-            transition: stroke-dashoffset 0.1s linear, stroke 0.1s linear;
+            transition: stroke 0.3s;
         }
         #digital-time {
-            font-size: 3rem; font-weight: 500;
+            font-size: 3rem;
+            font-weight: 500;
+            color: #333;
             z-index: 10;
         }
+        #digital-time .seconds {
+            color: var(--seconds-color);
+            transition: color 0.3s;
+        }
         #date-display {
-            font-size: 1rem; z-index: 10;
+            font-size: 1rem;
+            color: #888;
+            z-index: 10;
             margin-top: 5px;
         }
         #status-log {
-            display: none;
-            width: 400px;
-            max-height: 100px;
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            background-color: #fff;
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 13px;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #555;
+            height: 1.2em;
         }
-        .log-entry { margin: 2px 0; }
-        .log-info { color: #555; }
-        .log-success { color: green; font-weight: bold; }
-        .log-error { color: red; font-weight: bold; }
-        .clock-container,
-        .nonselect-font
-        {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
+        .nonselect {
+            user-select: none;
         }
     </style>
 </head>
 <body>
-    
-    <div id="persistent-controls" class="controls">
-        <label for="color-picker" class="nonselect-font">색상:</label>
-        <input type="color" id="color-picker" value="#28a745">
-        <button id="manual-sync-button" class="nonselect-font">수동 동기화</button>
+    <div class="controls">
+        <label for="color-picker" class="nonselect">색상</label>
+        <div class="color-picker-wrapper">
+            <input type="color" id="color-picker" value="#28a745">
+        </div>
+        <button id="manual-sync-button" class="nonselect">동기화</button>
     </div>
-
-    <div class="clock-container" style="background-color: rgb(255, 255, 255); border-color: rgb(224, 224, 224);">
+    <div class="clock-container">
         <svg class="analog-clock" viewBox="0 0 100 100">
-            <circle class="clock-bg" cx="50" cy="50" r="40" style="stroke: rgb(238, 238, 238);"></circle>
-            <circle class="seconds-arc" cx="50" cy="50" r="40" style="stroke-dasharray: 251.327; stroke: rgb(40, 167, 69); stroke-dashoffset: 164.753;"></circle>
+            <circle class="clock-bg" cx="50" cy="50" r="45"></circle>
+            <circle class="seconds-arc" cx="50" cy="50" r="45"></circle>
         </svg>
-        <div id="digital-time" style="color: rgb(51, 51, 51);" class="nonselect-font">--:--:<span class="seconds" style="color: #28a745;">--</span></div>
-        <div id="date-display" style="color: rgb(136, 136, 136);" class="nonselect-font">----.--.--. -요일</div>
+        <div id="digital-time" class="nonselect">--:--:<span class="seconds nonselect" >--</span></div>
+        <div id="date-display" class="nonselect">----.--.--. ---</div>
     </div>
-    
-    <div id="status-log"></div>
+    <div id="status-log" class="nonselect"></div>
 
     <script>
-        // ⭐️ 1. Worker URL과 API 경로 설정
-        const WORKER_URL_BASE = 'https://melonmilkis.sshyun1133.workers.dev/'; 
-        // ⭐️ API 경로를 Date 헤더를 확인한 성공 엔드포인트로 설정
-        const API_PATH = '/characters/melonmilkis/siblings'; 
-        
-        // 2. 나머지 설정
-        const colors = {
-            backgroundColor: '#ffffff',
-            borderColor: '#e0e0e0',
-            mainTextColor: '#333333',
-            dateTextColor: '#888888',
-            secondsColor: document.getElementById('color-picker').value,
-            analogBgColor: '#eeeeee'
-        };
+        const WORKER_URL = 'https://token.sshyun1133.workers.dev/';
+        const SYNC_INTERVAL = 4 * 60 * 60 * 1000;
+        const BEST_MEASUREMENTS_KEY = 'bestTimeMeasurements';
+        const MAX_SAMPLES_TO_KEEP = 5;
 
-        const SYNC_INTERVAL = 1000 * 60 * 60 * 24 / 6; 
-        let timeOffset = 0;
-        let syncIntervalId = null;
-        
-        // 3. DOM 요소 및 초기 설정
-        const clockContainerEl = document.querySelector('.clock-container');
         const digitalTimeEl = document.getElementById('digital-time');
         const dateEl = document.getElementById('date-display');
-        const clockBgEl = document.querySelector('.clock-bg');
         const secondsArcEl = document.querySelector('.seconds-arc');
         const colorPicker = document.getElementById('color-picker');
         const manualSyncButton = document.getElementById('manual-sync-button');
-        
+        const statusLogEl = document.getElementById('status-log');
+        const colorPickerWrapper = document.querySelector('.color-picker-wrapper');
+
+        let timeOffset = 0;
         const radius = secondsArcEl.r.baseVal.value;
         const circumference = 2 * Math.PI * radius;
         secondsArcEl.style.strokeDasharray = circumference;
 
-        function applyColors() {
-            clockContainerEl.style.backgroundColor = colors.backgroundColor;
-            clockContainerEl.style.borderColor = colors.borderColor;
-            digitalTimeEl.style.color = colors.mainTextColor;
-            dateEl.style.color = colors.dateTextColor;
-            clockBgEl.style.stroke = colors.analogBgColor;
-            secondsArcEl.style.stroke = colors.secondsColor;
-        }
+        async function fetchSingleMeasurement() {
+            const requestStartTime = Date.now();
+            const response = await fetch(WORKER_URL, { cache: 'no-store' });
+            const responseEndTime = Date.now();
 
+            if (!response.ok) throw new Error(`Worker 응답 오류: ${response.status}`);
+            const data = await response.json();
+            if (typeof data.finalOffset === 'undefined') throw new Error('응답에 finalOffset 정보가 없습니다.');
+
+            const roundTripTime = responseEndTime - requestStartTime;
+            const correctedOffset = data.finalOffset + (roundTripTime / 2);
+            
+            return { offset: Math.round(correctedOffset), rtt: roundTripTime };
+        }
+        
+        async function syncTime() {
+            statusLogEl.textContent = '🔄 동기화 및 기록 갱신 시도...';
+            console.log('🔄 동기화 및 기록 갱신 시도...');
+            try {
+                const newMeasurement = await fetchSingleMeasurement();
+                console.log(`- 신규 측정: RTT ${newMeasurement.rtt}ms, 오프셋 ${newMeasurement.offset}ms`);
+
+                const storedBestJSON = localStorage.getItem(BEST_MEASUREMENTS_KEY);
+                let bestMeasurements = storedBestJSON ? JSON.parse(storedBestJSON) : [];
+
+                bestMeasurements.push(newMeasurement);
+                bestMeasurements.sort((a, b) => a.rtt - b.rtt);
+                bestMeasurements = bestMeasurements.slice(0, MAX_SAMPLES_TO_KEEP);
+
+                localStorage.setItem(BEST_MEASUREMENTS_KEY, JSON.stringify(bestMeasurements));
+                
+                const sumOfBestOffsets = bestMeasurements.reduce((sum, m) => sum + m.offset, 0);
+                timeOffset = Math.round(sumOfBestOffsets / bestMeasurements.length);
+
+                const syncCompleteTime = new Date().toLocaleTimeString();
+                statusLogEl.textContent = `✅ 동기화 완료 (표본: ${bestMeasurements.length}개)`;
+                
+                console.log(`👍 최고 기록 ${bestMeasurements.length}개 기반으로 동기화 성공. 최종 오프셋: ${timeOffset}ms`);
+                console.log('현재 최고 기록 명단:', bestMeasurements);
+
+            } catch (error) {
+                statusLogEl.textContent = `❌ 동기화 실패: ${error.message}`;
+                console.error('동기화 실패:', error);
+            }
+        }
+        
         function updateClock() {
             const now = new Date(Date.now() + timeOffset);
             const hours = String(now.getHours()).padStart(2, '0');
@@ -175,108 +213,46 @@
             const year = now.getFullYear();
             const month = String(now.getMonth() + 1).padStart(2, '0');
             const date = String(now.getDate()).padStart(2, '0');
-            const day = ['일요일', '월요일', '화요일', '수요일', '토요일', '금요일', '토요일'][now.getDay()]; // 요일 배열 수정
+            const day = ['일', '월', '화', '수', '목', '금', '토'][now.getDay()];
 
-            digitalTimeEl.innerHTML = `${hours}:${minutes}:<span class="seconds" style="color: ${colors.secondsColor};">${seconds}</span>`;
-            dateEl.textContent = `${year}.${month}.${date}. ${day}`;
-            
+            digitalTimeEl.innerHTML = `${hours}:${minutes}:<span class="seconds">${seconds}</span>`;
+            dateEl.textContent = `${year}.${month}.${date}. ${day}요일`;
+
             const totalSeconds = now.getSeconds() + (now.getMilliseconds() / 1000);
             const arcPercentage = totalSeconds / 60;
             const offset = circumference * (1 - arcPercentage);
             secondsArcEl.style.strokeDashoffset = offset;
         }
-
-        // ⭐️ 4. Worker를 사용하는 fetchTimeOffset 함수 (Axios 기반)
-        function fetchTimeOffset() {
-            const requestStartTime = Date.now();
-            const proxyUrl = WORKER_URL_BASE + API_PATH; // Worker URL + API 경로
-
-            return axios({
-                url: proxyUrl, 
-                method: 'get', // GET 메서드 사용
-                headers: {
-                    'accept': 'application/json',
-                },
-            })
-            .then((response) => {
-                if (response.status !== 200) {
-                     // Worker가 200 외의 상태 코드를 전달하면 오류 발생
-                     throw new Error(`Worker 응답 오류: HTTP 상태 ${response.status}`);
-                }
-                
-                const responseEndTime = Date.now();
-                const roundTripTime = responseEndTime - requestStartTime;
-                
-                // Worker가 전달한 Lost Ark 서버의 Date 헤더를 찾습니다.
-                const serverDateHeader = response.headers.date || response.headers.Date; 
-
-                if (serverDateHeader) {
-                    const serverTime = new Date(serverDateHeader).getTime();
-                    const correctedLocalTime = requestStartTime + (roundTripTime / 2); 
-                    
-                    return serverTime - correctedLocalTime;
-                } else {
-                    // 서버가 Date 헤더를 주지 않을 경우 (이 경우는 발생하지 않아야 함)
-                    throw new Error("서버 Date 헤더 없음. (Worker 응답 헤더 소실 가능성)"); 
-                }
-            })
-            .catch((error) => {
-                let errorMessage = `Worker 통신 오류: Network Error`;
-                if (error.response && error.response.status) {
-                    errorMessage = `API 오류 발생 (상태: ${error.response.status} - ${error.response.statusText || '알 수 없음'})`;
-                } else if (error.message) {
-                     errorMessage = `통신 실패: ${error.message}`;
-                }
-                throw new Error(errorMessage);
-            });
+        
+        function handleColorChange(event) {
+            const newColor = event.target.value;
+            document.documentElement.style.setProperty('--seconds-color', newColor);
+            colorPickerWrapper.style.backgroundColor = newColor;
         }
 
-        async function syncTime() {
-             console.log("정밀 동기화를 시작합니다 (3회 측정)...");
-
-            const offsets = [];
-            let syncSuccess = true;
-            
-            for (let i = 0; i < 3; i++) {
-                try {
-                    const offset = await fetchTimeOffset();
-                    offsets.push(offset);
-                    console.log(`측정 ${i + 1} 성공. 오프셋: ${offset}ms`);
-                    await new Promise(resolve => setTimeout(resolve, 300));
-                } catch (error) {
-                    console.error(`측정 ${i + 1} 실패: ${error.message}`);
-                    syncSuccess = false;
-                    break;
+        async function initializeClock() {
+            const storedBestJSON = localStorage.getItem(BEST_MEASUREMENTS_KEY);
+            if (storedBestJSON) {
+                const bestMeasurements = JSON.parse(storedBestJSON);
+                if (bestMeasurements.length > 0) {
+                    const sumOfBestOffsets = bestMeasurements.reduce((sum, m) => sum + m.offset, 0);
+                    timeOffset = Math.round(sumOfBestOffsets / bestMeasurements.length);
                 }
             }
+
+            colorPicker.addEventListener('input', handleColorChange);
+            manualSyncButton.addEventListener('click', syncTime);
             
-            if (syncSuccess && offsets.length > 0) {
-                const avgOffset = offsets.reduce((a, b) => a + b, 0) / offsets.length;
-                timeOffset = Math.round(avgOffset);
-                console.log(`동기화 성공! 최종 보정값: ${timeOffset}ms (측정값: ${offsets.map(o => Math.round(o)).join(', ')})`);
-            } else {
-                 console.log("동기화 실패. 이전 시간 오프셋을 유지합니다.");
-            }
+            document.documentElement.style.setProperty('--seconds-color', colorPicker.value);
+            colorPickerWrapper.style.backgroundColor = colorPicker.value;
+            
+            await syncTime();
+            
+            setInterval(syncTime, SYNC_INTERVAL);
+            setInterval(updateClock, 50);
         }
-        
-        // 5. 이벤트 리스너 정리
-        colorPicker.addEventListener('input', (event) => {
-            colors.secondsColor = event.target.value;
-            secondsArcEl.style.stroke = colors.secondsColor;
-        });
 
-        manualSyncButton.addEventListener('click', syncTime);
-
-        // 6. 초기 실행
-        applyColors();
-        
-        // 초기 동기화 시작
-        syncTime();
-        syncIntervalId = setInterval(syncTime, SYNC_INTERVAL);
-
-        setInterval(updateClock, 10);
+        initializeClock();
     </script>
-
-
 </body>
 </html>
