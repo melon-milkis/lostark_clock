@@ -135,9 +135,9 @@
         }
         
         .nonSelect {
-            -webkit-user-select: none; /* Safari */
-            -ms-user-select: none; /* IE 10 and IE 11 */
-            user-select: none; /* Standard syntax */
+            -webkit-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
     </style>
 </head>
@@ -247,6 +247,8 @@
             const arcPercentage = totalSeconds / 60;
             const offset = circumference * (1 - arcPercentage);
             secondsArcEl.style.strokeDashoffset = offset;
+            
+            requestAnimationFrame(updateClock);
         }
         
         function handleColorChange(event) {
@@ -274,7 +276,8 @@
             await syncTime();
             
             setInterval(syncTime, SYNC_INTERVAL);
-            setInterval(updateClock, 50);
+            
+            requestAnimationFrame(updateClock);
         }
 
         initializeClock();
